@@ -1,0 +1,150 @@
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using WatchedApi.Infrastructure;
+using WatchedApi.Infrastructure.Data.Models;
+using WatchedApi.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+
+
+
+namespace WatchedApi.Ports.Rest.Controllers
+{
+    [ApiController]
+    [Route("api/users")]
+    public class UserController : ControllerBase
+    {
+        private readonly UserService _userService;
+        private readonly Authentication _authService;
+        private readonly ApplicationDbContext _context;
+
+        public UserController(UserService userService, Authentication authService, ApplicationDbContext context)
+        {
+            _userService = userService;
+            _authService = authService;
+            _context = context;
+        }
+
+        [HttpPost("signup")]
+        public async Task<IActionResult> Register([FromBody] User user)
+        {
+            //call user service from body on this endpoint
+            var createdUser = await _userService.RegisterUserAsync(user.Username, user.PasswordHash);
+
+            if (createdUser == null)
+            {
+                return BadRequest("User already exists or failed to sign in.");
+            }
+            return Ok(createdUser);
+        }
+
+
+
+
+        [Authorize] //makes it so this endpoint only works if valid jwt
+        [HttpPost("checkJwtValid")]
+        public IActionResult CheckJwtValid()
+        {
+            try
+            {
+                //pull those form my jwt
+                var username = User.FindFirst("username")?.Value;
+                var userId = User.FindFirst("userId")?.Value;
+
+                return Ok(new
+                {
+                    message = "JWT is still valid",
+                    user = new { userId, username }
+                });
+            }
+            catch (Exception)
+            {
+                return Unauthorized(new { message = "JWT is invalid or expired" });
+            }
+        }
+
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] User request)
+        {
+            try
+            {
+                //check if null
+                if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.PasswordHash))
+                {
+                    return BadRequest(new { message = "Username and password are required!" });
+                }
+
+                //check username
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
+                if (user == null)
+                {
+                    return Unauthorized(new { message = "Error Unable to find username!" });
+                }
+
+                //check pass
+                bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.PasswordHash, user.PasswordHash);
+                if (!isPasswordValid)
+                {
+                    return Unauthorized(new { message = "Error invalid password!" });
+                }
+
+                //find and remove old tokens
+                var oldTokens = await _context.RefreshTokens
+                    .Where(rt => rt.UserId == user.UserId)
+                    .ToListAsync();
+                _context.RefreshTokens.RemoveRange(oldTokens);
+                await _context.SaveChangesAsync();
+
+                //generate a fresh refresh token
+                string newRefreshToken = await _authService.GenerateRefreshToken(user.UserId);
+
+                // generate a fresh access token
+                var newJwtToken = _authService.GenerateJwtToken(user);
+
+                return Ok(new
+                {
+                    token = newJwtToken,
+                    refreshToken = newRefreshToken
+                });
+
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error logging in: {ex.Message}" });
+            }
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            //check body
+            if (request == null || string.IsNullOrEmpty(request.Token) || request.UserId <= 0)
+            {
+                return BadRequest(new { message = "Invalid request body! User ID and token are required." });
+            }
+
+            //find in db
+            var latestToken = await _context.RefreshTokens
+                .Where(rt => rt.UserId == request.UserId && !rt.IsRevoked)
+                .OrderByDescending(rt => rt.Expires)
+                .FirstOrDefaultAsync();
+
+            //if empty or expired say login
+            if (latestToken == null || latestToken.Token != request.Token || latestToken.Expires < DateTime.UtcNow)
+            {
+                return Unauthorized(new { message = "Refresh token expired. Please log in again." });
+            }
+
+            //generate new jwt
+            var user = await _context.Users.FindAsync(request.UserId);
+            string newJwtToken = _authService.GenerateJwtToken(user);
+
+            return Ok(new
+            {
+                token = newJwtToken,
+                refreshToken = latestToken.Token
+            });
+        }
+    }
+}
