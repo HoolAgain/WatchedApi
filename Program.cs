@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using WatchedApi.Infrastructure.Data;
 using WatchedApi.Infrastructure;
-
+using System.Text.Json.Serialization;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,6 +19,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<PostService>();
 builder.Services.AddScoped<Authentication>();
 
 //needed jwt schema
@@ -39,8 +40,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
-
-builder.Services.AddControllers();
+// DO NOT REMOVE / ALTER: ReferenceHandler.Preserve is mandatory for handling our data structure without recursive cycling
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
