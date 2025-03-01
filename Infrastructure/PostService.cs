@@ -30,6 +30,7 @@ namespace WatchedApi.Infrastructure
         {
             return await _context.Posts
                 .Include(p => p.User)
+                 .Include(p => p.Movie)
                 .Include(p => p.Comments)
                 .Include(p => p.PostLikes)
                 .FirstOrDefaultAsync(p => p.PostId == postId);
@@ -39,6 +40,7 @@ namespace WatchedApi.Infrastructure
         {
             return await _context.Posts
                 .Include(p => p.User)
+                .Include(p => p.Movie)
                 .Include(p => p.Comments)
                 .Include(p => p.PostLikes)
                 .ToListAsync();

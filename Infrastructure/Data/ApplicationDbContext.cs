@@ -6,9 +6,7 @@ namespace WatchedApi.Infrastructure.Data
     public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-            : base(options)
-        {
-        }
+            : base(options) { }
 
         public DbSet<User> Users { get; set; }
         public DbSet<Post> Posts { get; set; }
@@ -16,10 +14,23 @@ namespace WatchedApi.Infrastructure.Data
         public DbSet<PostLike> PostLikes { get; set; }
         public DbSet<AdminLog> AdminLogs { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
+        public DbSet<Movie> Movies { get; set; }
+        public DbSet<MovieRating> MovieRatings { get; set; }
+
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+
+            modelBuilder.Entity<MovieRating>()
+                   .HasIndex(mr => new { mr.UserId, mr.MovieId })  //can only rate once
+                   .IsUnique();
+
+            modelBuilder.Entity<Post>()
+                .HasOne(p => p.Movie)
+                .WithMany()
+                .HasForeignKey(p => p.MovieId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<RefreshToken>()
                 .HasOne(rt => rt.User)
@@ -28,7 +39,7 @@ namespace WatchedApi.Infrastructure.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<PostLike>()
-                .HasIndex(pl => new { pl.UserId, pl.PostId })
+                .HasIndex(pl => new { pl.UserId, pl.PostId }) //can only like once
                 .IsUnique();
 
             modelBuilder.Entity<Post>()

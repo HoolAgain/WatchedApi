@@ -7,6 +7,7 @@ using WatchedApi.Infrastructure;
 using System.Text.Json.Serialization;
 
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -18,9 +19,12 @@ var secretKey = jwtSettings["SecretKey"];
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 
+builder.Services.AddHttpClient<MovieService>();
+
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<PostService>();
 builder.Services.AddScoped<Authentication>();
+builder.Services.AddScoped<MovieService>();
 
 //needed jwt schema
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

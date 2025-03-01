@@ -31,11 +31,19 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             int userId = int.Parse(userIdClaim);
 
+            //used to check if movie exists
+            var movie = await _context.Movies.FindAsync(request.MovieId);
+            if (movie == null)
+            {
+                return BadRequest(new { message = "Invalid Movie ID // Error!!" });
+            }
+
             // Map the DTO to a new Post
             var post = new Post
             {
                 Title = request.Title,
                 Content = request.Content,
+                MovieId = request.MovieId,
                 // These collections are initialized to avoid model validation errors.
                 Comments = new List<Comment>(),
                 PostLikes = new List<PostLike>()
