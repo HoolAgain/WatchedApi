@@ -14,6 +14,9 @@ namespace WatchedApi.Infrastructure.Data.Models
         public int UserId { get; set; }
 
         [Required]
+        public int MovieId { get; set; }
+
+        [Required]
         [MaxLength(255)]
         public string Title { get; set; }
 
@@ -25,6 +28,9 @@ namespace WatchedApi.Infrastructure.Data.Models
 
         [ForeignKey("UserId")]
         public User User { get; set; }
+
+        [ForeignKey("MovieId")]
+        public Movie Movie { get; set; }
 
         public ICollection<Comment> Comments { get; set; }
         public ICollection<PostLike> PostLikes { get; set; }

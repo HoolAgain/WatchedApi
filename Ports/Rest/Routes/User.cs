@@ -146,5 +146,58 @@ namespace WatchedApi.Ports.Rest.Controllers
                 refreshToken = latestToken.Token
             });
         }
+
+        [HttpPost("guest")]
+        public async Task<IActionResult> LoginAsGuest()
+        {
+            try
+            {
+                //generate random username
+                string randomUsername = "Guest" + new string(Enumerable.Range(0, 8)
+                //index all those and make to array
+                    .Select(_ => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[Random.Shared.Next(52)])
+                    .ToArray());
+
+                //genrate randompass
+                string randomPassword = new string(Enumerable.Range(0, 12)
+                    .Select(_ => "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"[Random.Shared.Next(52)])
+                    .ToArray());
+
+                //hash pass
+                string hashedPassword = BCrypt.Net.BCrypt.HashPassword(randomPassword);
+
+                //create and save user
+                var guestUser = new User
+                {
+                    Username = randomUsername,
+                    PasswordHash = hashedPassword,
+                };
+
+                _context.Users.Add(guestUser);
+                await _context.SaveChangesAsync(); //add to db
+
+                //generate refresh
+                string newRefreshToken = await _authService.GenerateRefreshToken(guestUser.UserId);
+
+                //generate jwt
+                var guestJwtToken = _authService.GenerateJwtToken(guestUser);
+
+                return Ok(new
+                {
+                    message = "Login successful",
+                    userId = guestUser.UserId,
+                    username = randomUsername,
+                    token = guestJwtToken,
+                    refreshToken = newRefreshToken
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error logging in" });
+            }
+        }
     }
+
 }
+
+
