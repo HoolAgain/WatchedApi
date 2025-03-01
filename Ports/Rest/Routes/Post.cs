@@ -74,10 +74,9 @@ namespace WatchedApi.Ports.Rest.Controllers
         }
 
 
-        // Updates a post. Only the owner or an admin
         [HttpPut("{id}")]
         [Authorize]
-        public async Task<IActionResult> UpdatePost(int id, [FromBody] Post updatedPost)
+        public async Task<IActionResult> UpdatePost(int id, [FromBody] UpdatePostRequest updateRequest)
         {
             var userIdClaim = User.FindFirst("userId")?.Value;
             if (string.IsNullOrEmpty(userIdClaim))
@@ -90,6 +89,13 @@ namespace WatchedApi.Ports.Rest.Controllers
             var currentUser = await _context.Users.FindAsync(userId);
             bool isAdmin = currentUser != null && currentUser.IsAdmin;
 
+            // Map the DTO
+            var updatedPost = new Post
+            {
+                Title = updateRequest.Title,
+                Content = updateRequest.Content
+            };
+
             var post = await _postService.UpdatePostAsync(id, updatedPost, userId, isAdmin);
             if (post == null)
             {
@@ -97,6 +103,7 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             return Ok(post);
         }
+
 
 
         // Deletes a post. Only the owner or an admin
