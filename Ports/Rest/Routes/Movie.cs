@@ -34,6 +34,7 @@ namespace WatchedApi.Ports.Rest.Controllers
         [Authorize]
         public async Task<IActionResult> RateMovie(int movieid, [FromBody] MovieRating request)
         {
+            //find userid
             var userIdClaim = User.FindFirst("userId")?.Value;
             //check id
             if (string.IsNullOrEmpty(userIdClaim))
@@ -62,42 +63,23 @@ namespace WatchedApi.Ports.Rest.Controllers
         }
 
 
-
-
-        //get rating for movie
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetMovie(int movieid)
+        public async Task<IActionResult> GetMovieDetails(int id)
         {
-            //get movie details
+            //get all movie data given movie id
             var movie = await _context.Movies
-                .FirstOrDefaultAsync(m => m.MovieId == movieid);
+                .FirstOrDefaultAsync(m => m.MovieId == id);
 
             if (movie == null)
             {
                 return NotFound(new { message = "Movie not found" });
             }
 
-            //pull movie ratings to a double
-            double? avgRating = await _context.MovieRatings
-                .Where(mr => mr.MovieId == movieid)
-                .Select(mr => (double?)mr.Rating)
-                //average the rating from that specific movieid
-                .AverageAsync() ?? 0;
-
-            return Ok(new
-            {
-                movie.MovieId,
-                movie.Title,
-                movie.Year,
-                movie.Genre,
-                movie.Director,
-                movie.PosterUrl,
-                AverageRating = avgRating
-            });
+            return Ok(movie);
         }
-
-
     }
 
-
 }
+
+
+

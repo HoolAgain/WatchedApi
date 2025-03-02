@@ -26,6 +26,7 @@ builder.Services.AddScoped<PostService>();
 builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<Authentication>();
 builder.Services.AddScoped<MovieService>();
+builder.Services.AddScoped<AdminService>();
 
 //needed jwt schema
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

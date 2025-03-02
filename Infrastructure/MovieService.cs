@@ -45,6 +45,7 @@ public class MovieService
             //deserialize it with the model given below
             var apiMovie = JsonSerializer.Deserialize<OmdbMovieResponse>(json);
 
+            //save to this model
             var movie = new Movie
             {
                 Title = apiMovie.Title,
@@ -54,13 +55,16 @@ public class MovieService
                 PosterUrl = apiMovie.Poster
             };
 
+            //add to db and list
             _context.Movies.Add(movie);
             moviesSaved.Add(movie);
         }
 
+        //save changes and return list
         await _context.SaveChangesAsync();
         return moviesSaved;
     }
+
 
     //to add and recalc average
     public async Task<bool> RateMovie(int userId, int movieId, int rating)
@@ -86,6 +90,7 @@ public class MovieService
             Rating = rating
         };
 
+        //add rating to db
         _context.MovieRatings.Add(newRating);
         await _context.SaveChangesAsync();
 
@@ -98,6 +103,7 @@ public class MovieService
         //make average rating equal the new average
         movie.AverageRating = newAverage ?? 0;
 
+        //save
         await _context.SaveChangesAsync();
         return true;
     }
