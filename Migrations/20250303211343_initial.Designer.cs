@@ -11,7 +11,7 @@ using WatchedApi.Infrastructure.Data;
 namespace WatchedApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250228234011_initial")]
+    [Migration("20250303211343_initial")]
     partial class initial
     {
         /// <inheritdoc />
