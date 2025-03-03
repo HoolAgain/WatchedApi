@@ -28,7 +28,7 @@ namespace WatchedApi.Infrastructure
                 if (post == null)
                     return false;
 
-                //remove post given id
+                //remove post given
                 _context.Posts.Remove(post);
                 //save changes
                 await _context.SaveChangesAsync();

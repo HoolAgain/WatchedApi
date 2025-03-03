@@ -72,21 +72,21 @@ namespace WatchedApi.Ports.Rest.Controllers
                 //check if null
                 if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.PasswordHash))
                 {
-                    return BadRequest(new { message = "Username and password are required!" });
+                    return BadRequest(new { message = "Username and password are required" });
                 }
 
                 //check username
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
                 if (user == null)
                 {
-                    return Unauthorized(new { message = "Error Unable to find username!" });
+                    return Unauthorized(new { message = "Error Unable to find username" });
                 }
 
                 //check pass
                 bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.PasswordHash, user.PasswordHash);
                 if (!isPasswordValid)
                 {
-                    return Unauthorized(new { message = "Error invalid password!" });
+                    return Unauthorized(new { message = "Error invalid password" });
                 }
 
                 //find and remove old tokens
@@ -121,7 +121,7 @@ namespace WatchedApi.Ports.Rest.Controllers
             //check body
             if (request == null || string.IsNullOrEmpty(request.Token) || request.UserId <= 0)
             {
-                return BadRequest(new { message = "Invalid request body! User ID and token are required." });
+                return BadRequest(new { message = "Invalid request body! User ID and token are required" });
             }
 
             //find in db
@@ -133,7 +133,7 @@ namespace WatchedApi.Ports.Rest.Controllers
             //if empty or expired say login
             if (latestToken == null || latestToken.Token != request.Token || latestToken.Expires < DateTime.UtcNow)
             {
-                return Unauthorized(new { message = "Refresh token expired. Please log in again." });
+                return Unauthorized(new { message = "Refresh token expired. Please log in again" });
             }
 
             //generate new jwt
@@ -191,9 +191,9 @@ namespace WatchedApi.Ports.Rest.Controllers
                     refreshToken = newRefreshToken
                 });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new { message = $"Error logging in" });
+                return StatusCode(500, new { message = "Error logging in" });
             }
         }
     }
