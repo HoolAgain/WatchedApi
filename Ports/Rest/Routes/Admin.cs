@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using WatchedApi.Infrastructure;
@@ -15,11 +16,9 @@ namespace WatchedApi.Ports.Rest.Controllers
             _adminService = adminService;
         }
 
-
         [HttpPost("login")]
         public async Task<IActionResult> AdminLogin([FromBody] AdminLoginRequest request)
         {
-            //check if equals hard coded user and pass
             bool isValidAdmin = await _adminService.ValidateAdminLogin(request.Username, request.Password);
 
             if (!isValidAdmin)
@@ -27,7 +26,6 @@ namespace WatchedApi.Ports.Rest.Controllers
 
             return Ok(new { message = "Admin login successful" });
         }
-
 
         [HttpDelete("deletepost/{postId}")]
         public async Task<IActionResult> DeletePost(int postId)
@@ -38,6 +36,28 @@ namespace WatchedApi.Ports.Rest.Controllers
                 return Ok(new { message = "Post has been deleted successfully" });
 
             return NotFound(new { message = "Post with ID not found" });
+        }
+
+        [HttpGet("logs")]
+        [Authorize]
+        public async Task<IActionResult> GetAdminLogs()
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new { message = "Invalid token: missing user id." });
+            }
+            int userId = int.Parse(userIdClaim);
+
+            // Ensure that the current user is an admin.
+            bool isAdmin = await _adminService.ValidateUserIsAdmin(userId);
+            if (!isAdmin)
+            {
+                return StatusCode(403, new { message = "You do not have permission to view admin logs." });
+            }
+
+            var logs = await _adminService.GetAdminLogsAsync();
+            return Ok(logs);
         }
 
         public class AdminLoginRequest

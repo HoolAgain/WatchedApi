@@ -41,10 +41,28 @@ namespace WatchedApi.Infrastructure
             }
         }
 
+        // Possibly replaceable
         public async Task<bool> ValidateAdminLogin(string username, string password)
         {
             //return true if input equals those strings
             return await Task.FromResult(username == adminUsername && password == adminPassword);
+        }
+
+        // Replacement
+        public async Task<bool> ValidateUserIsAdmin(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            return user != null && user.IsAdmin;
+        }
+
+        public async Task<List<AdminLog>> GetAdminLogsAsync()
+        {
+            return await _context.AdminLogs
+                .Include(log => log.Admin)
+                .Include(log => log.TargetUser)
+                .Include(log => log.TargetPost)
+                .Include(log => log.TargetComment)
+                .ToListAsync();
         }
     }
 }
