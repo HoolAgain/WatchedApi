@@ -5,11 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using WatchedApi.Infrastructure.Data;
 using WatchedApi.Infrastructure;
 using System.Text.Json.Serialization;
-
+using BCrypt.Net;
+using WatchedApi.Infrastructure.Data.Models;
 
 
 var builder = WebApplication.CreateBuilder(args);
-
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -55,6 +55,27 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    // Seed initial admin if none exists.
+    if (!context.Users.Any(u => u.IsAdmin))
+    {
+        var adminUser = new User
+        {
+            Username = "admin",
+            Email = "admin@example.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("JeromeNumber1"),
+            IsAdmin = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.Users.Add(adminUser);
+        await context.SaveChangesAsync();
+    }
+}
 
 if (app.Environment.IsDevelopment())
 {
