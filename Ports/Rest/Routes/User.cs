@@ -28,15 +28,40 @@ namespace WatchedApi.Ports.Rest.Controllers
         [HttpPost("signup")]
         public async Task<IActionResult> Register([FromBody] User user)
         {
-            //call user service from body on this endpoint
-            var createdUser = await _userService.RegisterUserAsync(user.Username, user.PasswordHash);
+            if (string.IsNullOrWhiteSpace(user.Username) || string.IsNullOrWhiteSpace(user.PasswordHash) ||
+                string.IsNullOrWhiteSpace(user.FullName) || string.IsNullOrWhiteSpace(user.Email) ||
+                string.IsNullOrWhiteSpace(user.PhoneNumber) || string.IsNullOrWhiteSpace(user.Address))
+            {
+                return BadRequest(new { message = "All fields are required!" });
+            }
+
+            var createdUser = await _userService.RegisterUserAsync(
+                user.Username,
+                user.PasswordHash,
+                user.FullName,
+                user.Email,
+                user.PhoneNumber,
+                user.Address
+            );
 
             if (createdUser == null)
             {
-                return BadRequest("User already exists or failed to sign in.");
+                return BadRequest(new { message = "User already exists!" });
             }
-            return Ok(createdUser);
+
+            return Ok(new
+            {
+                message = "User registered successfully",
+                userId = createdUser.UserId,
+                username = createdUser.Username,
+                email = createdUser.Email,
+                fullName = createdUser.FullName,
+                phoneNumber = createdUser.PhoneNumber,
+                address = createdUser.Address,
+                password = createdUser.PasswordHash
+            });
         }
+
 
 
 

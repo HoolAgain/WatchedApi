@@ -28,6 +28,14 @@ namespace WatchedApi.Ports.Rest.Controllers
             return Ok(new { message = movies });
         }
 
+        //get all movies
+        [HttpGet]
+        public async Task<IActionResult> GetAllMovies()
+        {
+            var movies = await _context.Movies.ToListAsync();
+            return Ok(movies);
+        }
+
 
         //rate movies
         [HttpPost("{id}/ratemovie")]

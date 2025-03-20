@@ -15,25 +15,39 @@ namespace WatchedApi.Infrastructure
             _context = context;
         }
 
-        public async Task<User> RegisterUserAsync(string username, string password)
+        public async Task<User> RegisterUserAsync(string username, string password, string fullName, string email, string phoneNumber, string address)
         {
-            //checks if user already exists
+            //check
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) ||
+                string.IsNullOrWhiteSpace(fullName) || string.IsNullOrWhiteSpace(email) ||
+                string.IsNullOrWhiteSpace(phoneNumber) || string.IsNullOrWhiteSpace(address))
+            {
+                throw new ArgumentException("All fields are required.");
+            }
+
+            //Check if user already exists
             var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
             if (existingUser != null)
             {
-                return null;//which in the controller will display user already exists
+                return null; // Will return null if user exists
             }
 
-            //hash the password
+            //Hash the password
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
 
+            //Create new user
             var createdUser = new User
             {
                 Username = username,
-                PasswordHash = hashedPassword
+                PasswordHash = hashedPassword,
+                FullName = fullName,
+                Email = email,
+                PhoneNumber = phoneNumber,
+                Address = address,
+                CreatedAt = DateTime.UtcNow
             };
 
-            //add to database
+            //Save to database
             _context.Users.Add(createdUser);
             await _context.SaveChangesAsync();
 

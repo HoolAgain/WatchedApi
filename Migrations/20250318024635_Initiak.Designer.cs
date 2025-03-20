@@ -11,8 +11,8 @@ using WatchedApi.Infrastructure.Data;
 namespace WatchedApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250228234011_initial")]
-    partial class initial
+    [Migration("20250318024635_Initiak")]
+    partial class Initiak
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -241,10 +241,16 @@ namespace WatchedApi.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Address")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FullName")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsAdmin")
@@ -252,6 +258,9 @@ namespace WatchedApi.Migrations
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PhoneNumber")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Username")

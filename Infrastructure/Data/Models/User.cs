@@ -23,6 +23,10 @@ namespace WatchedApi.Infrastructure.Data.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public string? FullName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? Address { get; set; }
+
         //initialized with empty string so that these arent required
         public ICollection<Post>? Posts { get; set; } = new List<Post>();
         public ICollection<Comment>? Comments { get; set; } = new List<Comment>();
