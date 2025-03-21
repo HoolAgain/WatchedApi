@@ -32,9 +32,26 @@ namespace WatchedApi.Ports.Rest.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllMovies()
         {
-            var movies = await _context.Movies.ToListAsync();
+            var movies = await _context.Movies
+                .Select(m => new
+                {
+                    m.MovieId,
+                    m.Title,
+                    m.Year,
+                    m.Genre,
+                    m.Director,
+                    m.PosterUrl,
+                    //get raitng from rating model and make it equal this movie rating from this model plus average it
+                    AverageRating = _context.MovieRatings
+                        .Where(mr => mr.MovieId == m.MovieId)
+                        .Select(mr => (double?)mr.Rating)
+                        .Average() ?? 0
+                })
+                .ToListAsync();
+
             return Ok(movies);
         }
+
 
 
         //rate movies
@@ -72,13 +89,13 @@ namespace WatchedApi.Ports.Rest.Controllers
 
 
 
-        //get rating for movie
+        //get specific movie details
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetMovie(int movieid)
+        public async Task<IActionResult> GetMovie(int id)
         {
             //get movie details
             var movie = await _context.Movies
-                .FirstOrDefaultAsync(m => m.MovieId == movieid);
+                .FirstOrDefaultAsync(m => m.MovieId == id);
 
             if (movie == null)
             {
@@ -87,7 +104,7 @@ namespace WatchedApi.Ports.Rest.Controllers
 
             //pull movie ratings to a double
             double? avgRating = await _context.MovieRatings
-                .Where(mr => mr.MovieId == movieid)
+                .Where(mr => mr.MovieId == id)
                 .Select(mr => (double?)mr.Rating)
                 //average the rating from that specific movieid
                 .AverageAsync() ?? 0;
