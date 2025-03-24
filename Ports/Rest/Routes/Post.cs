@@ -103,6 +103,13 @@ namespace WatchedApi.Ports.Rest.Controllers
         [HttpGet("all")]
         public async Task<IActionResult> GetAllPosts()
         {
+            var currentUserIdStr = User.FindFirst("userId")?.Value;
+            int currentUserId = 0;
+            if (!string.IsNullOrEmpty(currentUserIdStr))
+            {
+                currentUserId = int.Parse(currentUserIdStr);
+            }
+
             var posts = await _context.Posts
                 .Include(p => p.User)
                 .Select(p => new PostDto
@@ -115,7 +122,8 @@ namespace WatchedApi.Ports.Rest.Controllers
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     Username = p.User.Username,
-                    LikeCount = _context.PostLikes.Count(pl => pl.PostId == p.PostId)
+                    LikeCount = _context.PostLikes.Count(pl => pl.PostId == p.PostId),
+                    HasLiked = _context.PostLikes.Any(pl => pl.PostId == p.PostId && pl.UserId == currentUserId)
                 })
                 .ToListAsync();
 

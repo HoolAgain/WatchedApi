@@ -11,5 +11,6 @@
         public DateTime UpdatedAt { get; set; }
         public string Username { get; set; }
         public int LikeCount { get; set; }
+        public bool HasLiked { get; set; }
     }
 }
