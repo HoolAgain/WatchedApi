@@ -57,7 +57,7 @@ namespace WatchedApi.Ports.Rest.Controllers
         //rate movies
         [HttpPost("{id}/ratemovie")]
         [Authorize]
-        public async Task<IActionResult> RateMovie(int movieid, [FromBody] MovieRating request)
+        public async Task<IActionResult> RateMovie(int id, [FromBody] MovieRating request)
         {
             var userIdClaim = User.FindFirst("userId")?.Value;
             //check id
@@ -75,7 +75,7 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
 
             //bool is userid, movieid and rating valid
-            bool success = await _movieService.RateMovie(userId, movieid, request.Rating);
+            bool success = await _movieService.RateMovie(userId, id, request.Rating);
 
             //if rating already done show error
             if (!success)
