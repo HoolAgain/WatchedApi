@@ -20,33 +20,51 @@ namespace WatchedApi.Ports.Rest.Controllers
 			_context = context;
 		}
 
-		// POST: api/comments/create
-		// Allows any authenticated user to create a comment.
-		[HttpPost("create")]
-		[Authorize]
-		public async Task<IActionResult> CreateComment([FromBody] CreateCommentRequest request)
-		{
-			var userIdClaim = User.FindFirst("userId")?.Value;
-			if (string.IsNullOrEmpty(userIdClaim))
-			{
-				return Unauthorized(new { message = "Invalid token: missing user id." });
-			}
-			int userId = int.Parse(userIdClaim);
+        // POST: api/comments/create
+        // Allows any authenticated user to create a comment.
+        [HttpPost("create")]
+        [Authorize]
+        public async Task<IActionResult> CreateComment([FromBody] CreateCommentRequest request)
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new { message = "Invalid token: missing user id." });
+            }
+            int userId = int.Parse(userIdClaim);
 
-			// Map the DTO to a Comment entity.
-			var comment = new Comment
-			{
-				PostId = request.PostId,
-				Content = request.Content
-			};
+            // Map the DTO to a Comment entity.
+            var comment = new Comment
+            {
+                PostId = request.PostId,
+                Content = request.Content
+            };
 
-			var createdComment = await _commentService.CreateCommentAsync(comment, userId);
-			return Ok(createdComment);
-		}
+            var createdComment = await _commentService.CreateCommentAsync(comment, userId);
 
-		// GET: api/comments/{id}
-		// Retrieve a specific comment by ID.
-		[HttpGet("{id}")]
+            // Re-query to get full user info and project to CommentDto.
+            var commentDto = await _context.Comments
+                .Include(c => c.User)
+                .Where(c => c.CommentId == createdComment.CommentId)
+                .Select(c => new CommentDto
+                {
+                    CommentId = c.CommentId,
+                    PostId = c.PostId,
+                    UserId = c.UserId,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt,
+                    Username = c.User.Username
+                })
+                .FirstOrDefaultAsync();
+
+            return Ok(commentDto);
+        }
+
+
+        // GET: api/comments/{id}
+        // Retrieve a specific comment by ID.
+        [HttpGet("{id}")]
 		public async Task<IActionResult> GetComment(int id)
 		{
 			var comment = await _commentService.GetCommentByIdAsync(id);
@@ -57,14 +75,29 @@ namespace WatchedApi.Ports.Rest.Controllers
 			return Ok(comment);
 		}
 
-		// GET: api/comments/post/{postId}
-		// Retrieve all comments for a given post.
-		[HttpGet("post/{postId}")]
-		public async Task<IActionResult> GetCommentsForPost(int postId)
-		{
-			var comments = await _commentService.GetCommentsByPostIdAsync(postId);
-			return Ok(comments);
-		}
+        // GET: api/comments/post/{postId}
+        // Retrieve all comments for a given post.
+        [HttpGet("post/{postId}")]
+        public async Task<IActionResult> GetCommentsForPost(int postId)
+        {
+            var commentDtos = await _context.Comments
+                .Include(c => c.User)
+                .Where(c => c.PostId == postId)
+                .Select(c => new CommentDto
+                {
+                    CommentId = c.CommentId,
+                    PostId = c.PostId,
+                    UserId = c.UserId,
+                    Content = c.Content,
+                    CreatedAt = c.CreatedAt,
+                    UpdatedAt = c.UpdatedAt,
+                    Username = c.User.Username
+                })
+                .ToListAsync();
+
+            return Ok(commentDtos);
+        }
+
 
         // PUT: api/comments/{id}
         // Update an existing comment. Only the comment owner or an admin can update.

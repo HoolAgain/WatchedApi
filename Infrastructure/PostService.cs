@@ -113,5 +113,19 @@ namespace WatchedApi.Infrastructure
 
             return newLike;
         }
+
+        public async Task<bool> UnlikePostAsync(int postId, int userId)
+        {
+            var existingLike = await _context.PostLikes
+                .FirstOrDefaultAsync(like => like.PostId == postId && like.UserId == userId);
+            if (existingLike == null)
+            {
+                return false;
+            }
+            _context.PostLikes.Remove(existingLike);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
     }
 }

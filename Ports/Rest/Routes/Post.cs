@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WatchedApi.Infrastructure;
 using WatchedApi.Infrastructure.Data;
 using WatchedApi.Infrastructure.Data.Models;
-using WatchedApi.Infrastructure;
 
 namespace WatchedApi.Ports.Rest.Controllers
 {
@@ -19,7 +20,7 @@ namespace WatchedApi.Ports.Rest.Controllers
             _context = context;
         }
 
-        // requires a valid JWT.
+        // Create a new post and return a PostDto with complete user info.
         [HttpPost("create")]
         [Authorize]
         public async Task<IActionResult> CreatePost([FromBody] CreatePostRequest request)
@@ -31,49 +32,97 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             int userId = int.Parse(userIdClaim);
 
-            //used to check if movie exists
+            // Check if movie exists.
             var movie = await _context.Movies.FindAsync(request.MovieId);
             if (movie == null)
             {
-                return BadRequest(new { message = "Invalid Movie ID // Error!!" });
+                return BadRequest(new { message = "Invalid Movie ID." });
             }
 
-            // Map the DTO to a new Post
+            // Map the DTO to a new Post.
             var post = new Post
             {
                 Title = request.Title,
                 Content = request.Content,
                 MovieId = request.MovieId,
-                // These collections are initialized to avoid model validation errors.
                 Comments = new List<Comment>(),
                 PostLikes = new List<PostLike>()
             };
 
             var createdPost = await _postService.CreatePostAsync(post, userId);
-            return Ok(createdPost);
+
+            // Re-query the created post including the User info.
+            var createdPostDto = await _context.Posts
+                .Include(p => p.User)
+                .Where(p => p.PostId == createdPost.PostId)
+                .Select(p => new PostDto
+                {
+                    PostId = p.PostId,
+                    UserId = p.UserId,
+                    MovieId = p.MovieId,
+                    Title = p.Title,
+                    Content = p.Content,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    Username = p.User.Username
+                })
+                .FirstOrDefaultAsync();
+
+            return Ok(createdPostDto);
         }
 
-
+        // Get a specific post by id as a PostDto.
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPost(int id)
         {
-            var post = await _postService.GetPostByIdAsync(id);
-            if (post == null)
+            var postDto = await _context.Posts
+                .Include(p => p.User)
+                .Where(p => p.PostId == id)
+                .Select(p => new PostDto
+                {
+                    PostId = p.PostId,
+                    UserId = p.UserId,
+                    MovieId = p.MovieId,
+                    Title = p.Title,
+                    Content = p.Content,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    Username = p.User.Username,
+                    LikeCount = _context.PostLikes.Count(pl => pl.PostId == p.PostId)
+                })
+                .FirstOrDefaultAsync();
+
+            if (postDto == null)
             {
                 return NotFound(new { message = "Post not found" });
             }
-            return Ok(post);
+            return Ok(postDto);
         }
 
-
+        // Get all posts, projecting each to a PostDto.
         [HttpGet("all")]
         public async Task<IActionResult> GetAllPosts()
         {
-            var posts = await _postService.GetAllPostsAsync();
+            var posts = await _context.Posts
+                .Include(p => p.User)
+                .Select(p => new PostDto
+                {
+                    PostId = p.PostId,
+                    UserId = p.UserId,
+                    MovieId = p.MovieId,
+                    Title = p.Title,
+                    Content = p.Content,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    Username = p.User.Username,
+                    LikeCount = _context.PostLikes.Count(pl => pl.PostId == p.PostId)
+                })
+                .ToListAsync();
+
             return Ok(posts);
         }
 
-
+        // Update a post and return an updated PostDto.
         [HttpPut("{id}")]
         [Authorize]
         public async Task<IActionResult> UpdatePost(int id, [FromBody] UpdatePostRequest updateRequest)
@@ -85,11 +134,9 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             int userId = int.Parse(userIdClaim);
 
-            // Retrieve current user and check admin status.
             var currentUser = await _context.Users.FindAsync(userId);
             bool isAdmin = currentUser != null && currentUser.IsAdmin;
 
-            // Map the DTO
             var updatedPost = new Post
             {
                 Title = updateRequest.Title,
@@ -101,12 +148,28 @@ namespace WatchedApi.Ports.Rest.Controllers
             {
                 return Forbid();
             }
-            return Ok(post);
+
+            // Re-query the updated post including User info.
+            var updatedPostDto = await _context.Posts
+                .Include(p => p.User)
+                .Where(p => p.PostId == post.PostId)
+                .Select(p => new PostDto
+                {
+                    PostId = p.PostId,
+                    UserId = p.UserId,
+                    MovieId = p.MovieId,
+                    Title = p.Title,
+                    Content = p.Content,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    Username = p.User.Username
+                })
+                .FirstOrDefaultAsync();
+
+            return Ok(updatedPostDto);
         }
 
-
-
-        // Deletes a post. Only the owner or an admin
+        // Delete a post.
         [HttpDelete("{id}")]
         [Authorize]
         public async Task<IActionResult> DeletePost(int id)
@@ -118,7 +181,6 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             int userId = int.Parse(userIdClaim);
 
-            // Retrieve current user and check admin status.
             var currentUser = await _context.Users.FindAsync(userId);
             bool isAdmin = currentUser != null && currentUser.IsAdmin;
 
@@ -142,12 +204,44 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             int userId = int.Parse(userIdClaim);
 
+            var post = await _context.Posts.FindAsync(id);
+            if (post == null)
+            {
+                return BadRequest(new { message = "Post not found." });
+            }
+            if (post.UserId == userId)
+            {
+                return BadRequest(new { message = "You cannot like your own post." });
+            }
+
             var like = await _postService.LikePostAsync(id, userId);
             if (like == null)
             {
-                return BadRequest(new { message = "Post already liked or post not found" });
+                return BadRequest(new { message = "Post already liked." });
             }
             return Ok(like);
         }
+
+
+        [HttpDelete("{id}/like")]
+        [Authorize]
+        public async Task<IActionResult> UnlikePost(int id)
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new { message = "Invalid token: missing user id." });
+            }
+            int userId = int.Parse(userIdClaim);
+
+            bool success = await _postService.UnlikePostAsync(id, userId);
+            if (!success)
+            {
+                return BadRequest(new { message = "Post not liked or post not found" });
+            }
+            return Ok(new { message = "Like removed successfully" });
+        }
+
+
     }
 }
