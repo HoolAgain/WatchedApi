@@ -7,18 +7,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace WatchedApi.Ports.Rest.Controllers
 {
-	[ApiController]
-	[Route("api/comments")]
-	public class CommentController : ControllerBase
-	{
-		private readonly CommentService _commentService;
-		private readonly ApplicationDbContext _context;
+    [ApiController]
+    [Route("api/comments")]
+    public class CommentController : ControllerBase
+    {
+        private readonly CommentService _commentService;
+        private readonly ApplicationDbContext _context;
 
-		public CommentController(CommentService commentService, ApplicationDbContext context)
-		{
-			_commentService = commentService;
-			_context = context;
-		}
+        public CommentController(CommentService commentService, ApplicationDbContext context)
+        {
+            _commentService = commentService;
+            _context = context;
+        }
 
         // POST: api/comments/create
         // Allows any authenticated user to create a comment.
@@ -65,15 +65,15 @@ namespace WatchedApi.Ports.Rest.Controllers
         // GET: api/comments/{id}
         // Retrieve a specific comment by ID.
         [HttpGet("{id}")]
-		public async Task<IActionResult> GetComment(int id)
-		{
-			var comment = await _commentService.GetCommentByIdAsync(id);
-			if (comment == null)
-			{
-				return NotFound(new { message = "Comment not found" });
-			}
-			return Ok(comment);
-		}
+        public async Task<IActionResult> GetComment(int id)
+        {
+            var comment = await _commentService.GetCommentByIdAsync(id);
+            if (comment == null)
+            {
+                return NotFound(new { message = "Comment not found" });
+            }
+            return Ok(comment);
+        }
 
         // GET: api/comments/post/{postId}
         // Retrieve all comments for a given post.
@@ -134,26 +134,26 @@ namespace WatchedApi.Ports.Rest.Controllers
         // DELETE: api/comments/{id}
         // Delete a comment. Only the comment owner or an admin can delete.
         [HttpDelete("{id}")]
-		[Authorize]
-		public async Task<IActionResult> DeleteComment(int id)
-		{
-			var userIdClaim = User.FindFirst("userId")?.Value;
-			if (string.IsNullOrEmpty(userIdClaim))
-			{
-				return Unauthorized(new { message = "Invalid token: missing user id." });
-			}
-			int userId = int.Parse(userIdClaim);
+        [Authorize]
+        public async Task<IActionResult> DeleteComment(int id)
+        {
+            var userIdClaim = User.FindFirst("userId")?.Value;
+            if (string.IsNullOrEmpty(userIdClaim))
+            {
+                return Unauthorized(new { message = "Invalid token: missing user id." });
+            }
+            int userId = int.Parse(userIdClaim);
 
-			// Retrieve current user for admin check.
-			var currentUser = await _context.Users.FindAsync(userId);
-			bool isAdmin = currentUser != null && currentUser.IsAdmin;
+            // Retrieve current user for admin check.
+            var currentUser = await _context.Users.FindAsync(userId);
+            bool isAdmin = currentUser != null && currentUser.IsAdmin;
 
-			bool success = await _commentService.DeleteCommentAsync(id, userId, isAdmin);
-			if (!success)
-			{
-				return Forbid();
-			}
-			return Ok(new { message = "Comment deleted successfully" });
-		}
-	}
+            bool success = await _commentService.DeleteCommentAsync(id, userId, isAdmin);
+            if (!success)
+            {
+                return Forbid();
+            }
+            return Ok(new { message = "Comment deleted successfully" });
+        }
+    }
 }

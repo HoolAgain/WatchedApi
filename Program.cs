@@ -20,12 +20,16 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(connectionString));
 
 builder.Services.AddHttpClient<MovieService>();
+builder.Services.AddHttpClient<AIService>();
 
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<PostService>();
 builder.Services.AddScoped<CommentService>();
 builder.Services.AddScoped<Authentication>();
 builder.Services.AddScoped<MovieService>();
+builder.Services.AddScoped<AIService>();
+
+
 
 //needed jwt schema
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
