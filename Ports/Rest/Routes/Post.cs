@@ -130,7 +130,6 @@ namespace WatchedApi.Ports.Rest.Controllers
             return Ok(posts);
         }
 
-        // Update a post and return an updated PostDto.
         [HttpPut("{id}")]
         [Authorize]
         public async Task<IActionResult> UpdatePost(int id, [FromBody] UpdatePostRequest updateRequest)
@@ -145,10 +144,17 @@ namespace WatchedApi.Ports.Rest.Controllers
             var currentUser = await _context.Users.FindAsync(userId);
             bool isAdmin = currentUser != null && currentUser.IsAdmin;
 
+            // Append admin signature if the user is an admin.
+            string updatedContent = updateRequest.Content;
+            if (isAdmin)
+            {
+                updatedContent += $" -Post edited by {currentUser.Username}";
+            }
+
             var updatedPost = new Post
             {
                 Title = updateRequest.Title,
-                Content = updateRequest.Content
+                Content = updatedContent
             };
 
             var post = await _postService.UpdatePostAsync(id, updatedPost, userId, isAdmin);
@@ -157,7 +163,7 @@ namespace WatchedApi.Ports.Rest.Controllers
                 return Forbid();
             }
 
-            // Re-query the updated post including User info.
+            // Re-query the updated post and return it.
             var updatedPostDto = await _context.Posts
                 .Include(p => p.User)
                 .Where(p => p.PostId == post.PostId)
@@ -176,6 +182,7 @@ namespace WatchedApi.Ports.Rest.Controllers
 
             return Ok(updatedPostDto);
         }
+
 
         // Delete a post.
         [HttpDelete("{id}")]

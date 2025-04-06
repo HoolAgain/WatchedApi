@@ -94,51 +94,49 @@ namespace WatchedApi.Ports.Rest.Controllers
         {
             try
             {
-                //check if null
                 if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.PasswordHash))
                 {
                     return BadRequest(new { message = "Username and password are required!" });
                 }
 
-                //check username
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == request.Username);
                 if (user == null)
                 {
-                    return Unauthorized(new { message = "Error Unable to find username!" });
+                    return Unauthorized(new { message = "Error: Unable to find username!" });
                 }
 
-                //check pass
                 bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.PasswordHash, user.PasswordHash);
                 if (!isPasswordValid)
                 {
-                    return Unauthorized(new { message = "Error invalid password!" });
+                    return Unauthorized(new { message = "Error: invalid password!" });
                 }
 
-                //find and remove old tokens
+                // Remove old tokens, generate new ones...
                 var oldTokens = await _context.RefreshTokens
                     .Where(rt => rt.UserId == user.UserId)
                     .ToListAsync();
                 _context.RefreshTokens.RemoveRange(oldTokens);
                 await _context.SaveChangesAsync();
 
-                //generate a fresh refresh token
                 string newRefreshToken = await _authService.GenerateRefreshToken(user.UserId);
-
-                // generate a fresh access token
                 var newJwtToken = _authService.GenerateJwtToken(user);
 
+                // Return additional admin information.
                 return Ok(new
                 {
                     token = newJwtToken,
-                    refreshToken = newRefreshToken
+                    refreshToken = newRefreshToken,
+                    isAdmin = user.IsAdmin,
+                    userId = user.UserId,
+                    username = user.Username
                 });
-
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = $"Error logging in: {ex.Message}" });
             }
         }
+
 
         [HttpPost("refresh")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)

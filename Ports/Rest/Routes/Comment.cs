@@ -99,8 +99,6 @@ namespace WatchedApi.Ports.Rest.Controllers
         }
 
 
-        // PUT: api/comments/{id}
-        // Update an existing comment. Only the comment owner or an admin can update.
         [HttpPut("{id}")]
         [Authorize]
         public async Task<IActionResult> UpdateComment(int id, [FromBody] UpdateCommentRequest updateRequest)
@@ -112,14 +110,19 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             int userId = int.Parse(userIdClaim);
 
-            // Retrieve current user for admin check.
             var currentUser = await _context.Users.FindAsync(userId);
             bool isAdmin = currentUser != null && currentUser.IsAdmin;
 
-            // Create a temporary Comment object to pass only the updated content.
+            // Append admin signature if the user is an admin.
+            string updatedContent = updateRequest.Content;
+            if (isAdmin)
+            {
+                updatedContent += $" - Comment edited by {currentUser.Username}";
+            }
+
             var updatedComment = new Comment
             {
-                Content = updateRequest.Content
+                Content = updatedContent
             };
 
             var comment = await _commentService.UpdateCommentAsync(id, updatedComment, userId, isAdmin);
@@ -129,6 +132,7 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             return Ok(comment);
         }
+
 
 
         // DELETE: api/comments/{id}

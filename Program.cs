@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using WatchedApi.Infrastructure.Data;
 using WatchedApi.Infrastructure;
 using System.Text.Json.Serialization;
+using WatchedApi.Infrastructure.Data.Models;
 
 
 
@@ -75,6 +76,28 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    if (!context.Users.Any(u => u.IsAdmin))
+    {
+        var adminUser = new User
+        {
+            Username = "Admin",
+            Email = "admin@example.com",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("adpass123"),
+            IsAdmin = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.Users.Add(adminUser);
+        await context.SaveChangesAsync();
+        Console.WriteLine("Admin user seeded.");
+    }
+}
+
+
 app.UseCors("AllowAngularApp");
 app.UseHttpsRedirection();
 app.UseAuthentication();
