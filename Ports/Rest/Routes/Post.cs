@@ -148,7 +148,14 @@ namespace WatchedApi.Ports.Rest.Controllers
             string updatedContent = updateRequest.Content;
             if (isAdmin)
             {
-                updatedContent += $" -Post edited by {currentUser.Username}";
+                updatedContent += $" -edited by {currentUser.Username}";
+            }
+
+            // Retrieve the original post first to capture the owner.
+            var originalPost = await _context.Posts.FindAsync(id);
+            if (originalPost == null)
+            {
+                return NotFound(new { message = "Post not found." });
             }
 
             var updatedPost = new Post
@@ -160,10 +167,24 @@ namespace WatchedApi.Ports.Rest.Controllers
             var post = await _postService.UpdatePostAsync(id, updatedPost, userId, isAdmin);
             if (post == null)
             {
-                return Forbid();
+                return StatusCode(403, new { message = "You do not have permission to update this post." });
             }
 
-            // Re-query the updated post and return it.
+            // Log the admin action if applicable.
+            if (isAdmin)
+            {
+                _context.AdminLogs.Add(new AdminLog
+                {
+                    AdminId = currentUser.UserId,
+                    Action = "Edited Post",
+                    TargetPostId = post.PostId,
+                    TargetUserId = originalPost.UserId, // Capture original post owner here.
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            // Re-query the updated post to return the updated data.
             var updatedPostDto = await _context.Posts
                 .Include(p => p.User)
                 .Where(p => p.PostId == post.PostId)
@@ -184,7 +205,7 @@ namespace WatchedApi.Ports.Rest.Controllers
         }
 
 
-        // Delete a post.
+
         [HttpDelete("{id}")]
         [Authorize]
         public async Task<IActionResult> DeletePost(int id)
@@ -199,13 +220,36 @@ namespace WatchedApi.Ports.Rest.Controllers
             var currentUser = await _context.Users.FindAsync(userId);
             bool isAdmin = currentUser != null && currentUser.IsAdmin;
 
+            // Retrieve the original post to get its owner's ID.
+            var post = await _context.Posts.FindAsync(id);
+            if (post == null)
+            {
+                return NotFound(new { message = "Post not found." });
+            }
+
             var success = await _postService.DeletePostAsync(id, userId, isAdmin);
             if (!success)
             {
-                return Forbid();
+                return StatusCode(403, new { message = "You do not have permission to delete this post." });
             }
+
+            // Log the deletion if performed by an admin.
+            if (isAdmin)
+            {
+                _context.AdminLogs.Add(new AdminLog
+                {
+                    AdminId = currentUser.UserId,
+                    Action = "Deleted Post",
+                    TargetPostId = id,
+                    TargetUserId = post.UserId, // Capture original post owner.
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
             return Ok(new { message = "Post deleted successfully" });
         }
+
 
 
         [HttpPost("{id}/like")]

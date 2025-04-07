@@ -117,7 +117,14 @@ namespace WatchedApi.Ports.Rest.Controllers
             string updatedContent = updateRequest.Content;
             if (isAdmin)
             {
-                updatedContent += $" - Comment edited by {currentUser.Username}";
+                updatedContent += $" -edited by {currentUser.Username}";
+            }
+
+            // Retrieve the original comment to get its owner.
+            var originalComment = await _context.Comments.FindAsync(id);
+            if (originalComment == null)
+            {
+                return NotFound(new { message = "Comment not found." });
             }
 
             var updatedComment = new Comment
@@ -128,15 +135,28 @@ namespace WatchedApi.Ports.Rest.Controllers
             var comment = await _commentService.UpdateCommentAsync(id, updatedComment, userId, isAdmin);
             if (comment == null)
             {
-                return Forbid();
+                return StatusCode(403, new { message = "You do not have permission to update this comment." });
             }
+
+            // Log the admin action if applicable.
+            if (isAdmin)
+            {
+                _context.AdminLogs.Add(new AdminLog
+                {
+                    AdminId = currentUser.UserId,
+                    Action = "Edited Comment",
+                    TargetCommentId = comment.CommentId,
+                    TargetUserId = originalComment.UserId, // Capture original comment owner.
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
             return Ok(comment);
         }
 
 
 
-        // DELETE: api/comments/{id}
-        // Delete a comment. Only the comment owner or an admin can delete.
         [HttpDelete("{id}")]
         [Authorize]
         public async Task<IActionResult> DeleteComment(int id)
@@ -148,15 +168,36 @@ namespace WatchedApi.Ports.Rest.Controllers
             }
             int userId = int.Parse(userIdClaim);
 
-            // Retrieve current user for admin check.
             var currentUser = await _context.Users.FindAsync(userId);
             bool isAdmin = currentUser != null && currentUser.IsAdmin;
 
-            bool success = await _commentService.DeleteCommentAsync(id, userId, isAdmin);
+            // Retrieve the original comment.
+            var comment = await _context.Comments.FindAsync(id);
+            if (comment == null)
+            {
+                return NotFound(new { message = "Comment not found." });
+            }
+
+            var success = await _commentService.DeleteCommentAsync(id, userId, isAdmin);
             if (!success)
             {
-                return Forbid();
+                return StatusCode(403, new { message = "You do not have permission to delete this comment." });
             }
+
+            // Log the admin action if performed by an admin.
+            if (isAdmin)
+            {
+                _context.AdminLogs.Add(new AdminLog
+                {
+                    AdminId = currentUser.UserId,
+                    Action = "Deleted Comment",
+                    TargetCommentId = id,
+                    TargetUserId = comment.UserId, // Capture original comment owner.
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
             return Ok(new { message = "Comment deleted successfully" });
         }
     }
