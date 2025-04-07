@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+<PropertyGroup>
+  <TargetFramework>net8.0</TargetFramework>
+  <IsPackable>false</IsPackable>
+  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+
+  <!-- Required for Coverlet + project reference coverage -->
+  <CollectCoverage>true</CollectCoverage>
+  <CoverletOutput>TestResults/coverage/</CoverletOutput>
+  <CoverletOutputFormat>cobertura</CoverletOutputFormat>
+  <Include>[WatchedApi*]*</Include>
+  <UseSourceLink>true</UseSourceLink>
+</PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="3.2.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.3" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <!-- Downgrade xunit to 2.4.2 -->
+<PackageReference Include="xunit" Version="2.9.3" />
+
+    <!-- Downgrade xunit.runner.visualstudio to 2.4.3 -->
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Moq" Version="4.20.72" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WatchedApi-main\WatchedApi.csproj" />
+  </ItemGroup>
+
+</Project>
