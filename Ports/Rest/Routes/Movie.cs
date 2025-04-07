@@ -54,19 +54,15 @@ namespace WatchedApi.Ports.Rest.Controllers
 
 
 
-        //rate movies
         [HttpPost("{id}/ratemovie")]
         [Authorize]
         public async Task<IActionResult> RateMovie(int id, [FromBody] MovieRating request)
         {
             var userIdClaim = User.FindFirst("userId")?.Value;
-            //check id
             if (string.IsNullOrEmpty(userIdClaim))
             {
                 return Unauthorized(new { message = "Missing id" });
             }
-
-            //parse id
             int userId = int.Parse(userIdClaim);
 
             if (request == null || request.Rating < 1 || request.Rating > 10)
@@ -74,20 +70,27 @@ namespace WatchedApi.Ports.Rest.Controllers
                 return BadRequest(new { message = "Rating must be between 1 and 10" });
             }
 
-            //bool is userid, movieid and rating valid
+            // Attempt to rate the movie.
             bool success = await _movieService.RateMovie(userId, id, request.Rating);
 
-            //if rating already done show error
+            // If the user has already rated, return a conflict.
             if (!success)
             {
                 return Conflict(new { message = "You have already rated this movie" });
             }
 
+            // Log the site activity.
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Rating",
+                Operation = "Create",
+                TimeOf = DateTime.UtcNow,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
+
             return Ok(new { message = "Rating submitted successfully" });
         }
-
-
-
 
         //get specific movie details
         [HttpGet("{id}")]

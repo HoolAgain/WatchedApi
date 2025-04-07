@@ -16,6 +16,8 @@ namespace WatchedApi.Infrastructure.Data
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Movie> Movies { get; set; }
         public DbSet<MovieRating> MovieRatings { get; set; }
+        public DbSet<SiteActivityLog> SiteActivityLogs { get; set; }
+
 
 
 

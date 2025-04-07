@@ -4,6 +4,7 @@ using WatchedApi.Infrastructure;
 using WatchedApi.Infrastructure.Data;
 using WatchedApi.Infrastructure.Data.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 
 namespace WatchedApi.Ports.Rest.Controllers
 {
@@ -41,6 +42,16 @@ namespace WatchedApi.Ports.Rest.Controllers
             };
 
             var createdComment = await _commentService.CreateCommentAsync(comment, userId);
+
+            // Log the activity
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Comment",
+                Operation = "Create",
+                TimeOf = createdComment.CreatedAt,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
 
             // Re-query to get full user info and project to CommentDto.
             var commentDto = await _context.Comments
@@ -146,11 +157,21 @@ namespace WatchedApi.Ports.Rest.Controllers
                     AdminId = currentUser.UserId,
                     Action = "Edited Comment",
                     TargetCommentId = comment.CommentId,
-                    TargetUserId = originalComment.UserId, // Capture original comment owner.
+                    TargetUserId = originalComment.UserId,
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
             }
+
+            // Log site activity for everyone.
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Comment",
+                Operation = "Edit",
+                TimeOf = comment.UpdatedAt,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
 
             return Ok(comment);
         }
@@ -197,6 +218,16 @@ namespace WatchedApi.Ports.Rest.Controllers
                 });
                 await _context.SaveChangesAsync();
             }
+
+            // Log the deletion activity
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Comment",
+                Operation = "Delete",
+                TimeOf = DateTime.UtcNow,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
 
             return Ok(new { message = "Comment deleted successfully" });
         }

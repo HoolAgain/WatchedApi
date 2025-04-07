@@ -7,8 +7,6 @@ using WatchedApi.Infrastructure;
 using System.Text.Json.Serialization;
 using WatchedApi.Infrastructure.Data.Models;
 
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -80,6 +78,8 @@ if (app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+    // Seed admin user if not exists
     if (!context.Users.Any(u => u.IsAdmin))
     {
         var adminUser = new User
@@ -94,6 +94,50 @@ using (var scope = app.Services.CreateScope())
         context.Users.Add(adminUser);
         await context.SaveChangesAsync();
         Console.WriteLine("Admin user seeded.");
+    }
+
+    if (!context.SiteActivityLogs.Any())
+    {
+        int adminUserId = 11;
+        context.SiteActivityLogs.AddRange(
+            new SiteActivityLog
+            {
+                Activity = "Post",
+                Operation = "Delete",
+                TimeOf = new DateTime(2025, 1, 14, 17, 0, 0, DateTimeKind.Utc),
+                UserId = adminUserId
+            },
+            new SiteActivityLog
+            {
+                Activity = "Post",
+                Operation = "Delete",
+                TimeOf = new DateTime(2025, 1, 24, 17, 0, 0, DateTimeKind.Utc),
+                UserId = adminUserId
+            },
+            new SiteActivityLog
+            {
+                Activity = "Post",
+                Operation = "Delete",
+                TimeOf = new DateTime(2025, 2, 13, 17, 0, 0, DateTimeKind.Utc),
+                UserId = adminUserId
+            },
+            new SiteActivityLog
+            {
+                Activity = "Post",
+                Operation = "Delete",
+                TimeOf = new DateTime(2025, 3, 10, 17, 0, 0, DateTimeKind.Utc),
+                UserId = adminUserId
+            },
+            new SiteActivityLog
+            {
+                Activity = "Post",
+                Operation = "Delete",
+                TimeOf = new DateTime(2025, 4, 1, 17, 0, 0, DateTimeKind.Utc),
+                UserId = adminUserId
+            }
+        );
+        await context.SaveChangesAsync();
+        Console.WriteLine("Site activity logs seeded.");
     }
 }
 

@@ -51,6 +51,16 @@ namespace WatchedApi.Ports.Rest.Controllers
 
             var createdPost = await _postService.CreatePostAsync(post, userId);
 
+            // Log the activity
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Post",
+                Operation = "Create",
+                TimeOf = createdPost.CreatedAt,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
+
             // Re-query the created post including the User info.
             var createdPostDto = await _context.Posts
                 .Include(p => p.User)
@@ -178,11 +188,21 @@ namespace WatchedApi.Ports.Rest.Controllers
                     AdminId = currentUser.UserId,
                     Action = "Edited Post",
                     TargetPostId = post.PostId,
-                    TargetUserId = originalPost.UserId, // Capture original post owner here.
+                    TargetUserId = originalPost.UserId,
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
             }
+
+            // Log site activity for everyone.
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Post",
+                Operation = "Edit",
+                TimeOf = post.UpdatedAt,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
 
             // Re-query the updated post to return the updated data.
             var updatedPostDto = await _context.Posts
@@ -241,11 +261,21 @@ namespace WatchedApi.Ports.Rest.Controllers
                     AdminId = currentUser.UserId,
                     Action = "Deleted Post",
                     TargetPostId = id,
-                    TargetUserId = post.UserId, // Capture original post owner.
+                    TargetUserId = post.UserId,
                     CreatedAt = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
             }
+
+            // Log the deletion activity
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Post",
+                Operation = "Delete",
+                TimeOf = DateTime.UtcNow,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
 
             return Ok(new { message = "Post deleted successfully" });
         }
@@ -278,6 +308,16 @@ namespace WatchedApi.Ports.Rest.Controllers
             {
                 return BadRequest(new { message = "Post already liked." });
             }
+
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Like",
+                Operation = "Create",
+                TimeOf = DateTime.UtcNow,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
+
             return Ok(like);
         }
 
@@ -298,6 +338,16 @@ namespace WatchedApi.Ports.Rest.Controllers
             {
                 return BadRequest(new { message = "Post not liked or post not found" });
             }
+
+            _context.SiteActivityLogs.Add(new SiteActivityLog
+            {
+                Activity = "Like",
+                Operation = "Delete",
+                TimeOf = DateTime.UtcNow,
+                UserId = userId
+            });
+            await _context.SaveChangesAsync();
+
             return Ok(new { message = "Like removed successfully" });
         }
 
