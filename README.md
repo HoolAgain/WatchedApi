@@ -5,7 +5,7 @@ It provides endpoints for user authentication, posts, comments, movie ratings, a
 
 ## Testing
 -To run the unit tests and collect code coverage, first navigate to the `WatchedApi.Tests` project directory using:
--`Dotnet build`
+`Dotnet build`
 ```bash
 coverlet bin/Debug/net8.0/WatchedApi.Tests.dll --target "dotnet" --targetargs "test --no-build" --format cobertura
 ```
