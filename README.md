@@ -4,8 +4,8 @@ WatchedApi is the backend API for the Watched Movies project.
 It provides endpoints for user authentication, posts, comments, movie ratings, and likes with CRUD operations on each.
 
 ## Testing
-To run the unit tests and collect code coverage, first navigate to the `WatchedApi.Tests` project directory using:
-
+-To run the unit tests and collect code coverage, first navigate to the `WatchedApi.Tests` project directory using:
+-`Dotnet build`
 ```bash
 coverlet bin/Debug/net8.0/WatchedApi.Tests.dll --target "dotnet" --targetargs "test --no-build" --format cobertura
 ```
